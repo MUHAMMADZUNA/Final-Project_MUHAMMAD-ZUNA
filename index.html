@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Zuna Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        .tableau-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .tableau-container iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: 0;
+        }
+        /* ✅ BARU: animasi loading saat Groq AI memproses */
+        .ai-thinking {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0.85;
+            animation: ai-pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes ai-pulse {
+            0%, 100% { opacity: 0.5; }
+            50%      { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <header class="hero">
+        <div>
+            <h1>AI Zuna Dashboard</h1>
+            <p>Sales Intelligence & Recommendation System</p>
+        </div>
+        <div class="status">
+            <span class="live-dot"></span>
+            AI Analytics Online
+        </div>
+    </header>
+
+    <!-- ✅ FILTER SECTION — sekarang ada 4 filter -->
+    <section class="filter-section">
+        <select id="categoryFilter"><option value="All">All Category</option></select>
+        <select id="regionFilter"><option value="All">All Region</option></select>
+        <select id="subCatFilter"><option value="All">All SubCategory</option></select>
+        <select id="segmentFilter"><option value="All">All Segment</option></select>
+    </section>
+
+    <!-- TAB MENU -->
+    <div class="tab-menu">
+        <button class="tab-btn active" onclick="openTab('aiTab', event)">🤖 AI Dashboard</button>
+        <button class="tab-btn" onclick="openTab('tableauTab', event)">📊 Tableau Dashboard</button>
+    </div>
+
+    <!-- ══════════════════════════ AI TAB ══════════════════════════ -->
+    <div id="aiTab" class="tab-content active-tab">
+
+        <!-- KPI CARDS -->
+        <section class="kpi-grid">
+            <div class="card kpi">
+                <h3>Total Sales</h3>
+                <h2 id="sales">$0</h2>
+            </div>
+            <div class="card kpi">
+                <h3>Total Profit</h3>
+                <h2 id="profit">$0</h2>
+            </div>
+            <div class="card kpi">
+                <h3>Profit Margin</h3>
+                <h2 id="margin">0%</h2>
+            </div>
+            <div class="card kpi">
+                <h3>Quantity Sold</h3>
+                <h2 id="qty">0</h2>
+            </div>
+        </section>
+
+        <!-- BUSINESS HEALTH SCORE -->
+        <section class="health-section">
+            <div class="health-card">
+                <h2>📈 Business Health Score</h2>
+                <div class="health-circle">
+                    <span id="healthScore">0</span>
+                </div>
+                <p id="healthStatus">Calculating AI Score...</p>
+            </div>
+        </section>
+
+        <!-- EXECUTIVE SUMMARY -->
+        <section class="summary-card">
+            <h2>🤖 AI Executive Summary</h2>
+            <div id="executiveSummary">Loading AI Analysis...</div>
+        </section>
+
+        <!-- MINI CARDS -->
+        <section class="small-grid">
+            <div class="mini-card">
+                <h3>🏆 Top Sales Category</h3>
+                <h2 id="bestCategory">-</h2>
+            </div>
+            <div class="mini-card">
+                <h3>💰 Highest Profit Category</h3>
+                <h2 id="bestProfit">-</h2>
+            </div>
+            <div class="mini-card">
+                <h3>⚠️ Risk Level</h3>
+                <h2 id="riskLevel">Low</h2>
+            </div>
+        </section>
+
+        <!-- GAUGE + TOP CATEGORY -->
+        <section class="small-grid">
+            <div class="chart-card">
+                <h3>Profit Margin Gauge</h3>
+                <div id="profitGauge"></div>
+            </div>
+            <div class="chart-card">
+                <h3>Top Category Analysis</h3>
+                <div id="topCategory">Loading...</div>
+            </div>
+        </section>
+
+        <!-- AI INSIGHT / ANOMALY / RECOMMENDATION -->
+        <section class="ai-section">
+            <div class="ai-card">
+                <h2>🧠 AI Insight</h2>
+                <div id="insightBox"></div>
+            </div>
+            <div class="ai-card">
+                <h2>⚠️ Anomaly Detection</h2>
+                <div id="anomalyBox"></div>
+            </div>
+            <div class="ai-card">
+                <h2>🚀 Recommendation Engine</h2>
+                <div id="recommendationBox"></div>
+            </div>
+        </section>
+
+        <!-- TOP PERFORMER -->
+        <section class="summary-card">
+            <h2>🏆 Top Performing Category</h2>
+            <div id="topPerformer">Loading Analysis...</div>
+        </section>
+
+        <!-- AI CHAT -->
+        <section class="summary-card">
+            <h2>💬 AI Sales Assistant <span style="font-size:11px; opacity:0.6; font-weight:normal;">⚡ Powered by Groq (Llama 3.1)</span></h2>
+            <div class="chat-container">
+                <input type="text" id="question" placeholder="Tanya tentang sales, profit, risk, atau apapun terkait data...">
+                <button onclick="askAI()">Analyze</button>
+            </div>
+            <div class="answerBox" id="answerBox">AI Ready...</div>
+        </section>
+
+        <!-- FINAL CONCLUSION -->
+        <section class="summary-card">
+            <h2>🤖 AI Final Conclusion</h2>
+            <div id="finalConclusion">Loading Conclusion...</div>
+        </section>
+
+    </div>
+
+    <!-- ══════════════════════════ TABLEAU TAB ══════════════════════════ -->
+    <div id="tableauTab" class="tab-content">
+
+        <!-- SALES & PROFIT TREND -->
+        <section class="chart-grid">
+            <div class="chart-card">
+                <h3>📈 Sales Trend</h3>
+                <div id="salesTrend"></div>
+            </div>
+            <div class="chart-card">
+                <h3>📈 Profit Trend</h3>
+                <div id="profitTrend"></div>
+            </div>
+        </section>
+
+        <!-- CATEGORY CHARTS -->
+        <section class="chart-grid">
+            <div class="chart-card">
+                <h3>Sales by Category</h3>
+                <div id="salesCategory"></div>
+            </div>
+            <div class="chart-card">
+                <h3>Profit by Category</h3>
+                <div id="profitCategory"></div>
+            </div>
+        </section>
+
+        <!-- SCATTER + TOP PRODUCTS -->
+        <section class="chart-grid">
+            <div class="chart-card">
+                <h3>Sales vs Profit Analysis</h3>
+                <div id="scatterPlot"></div>
+            </div>
+            <div class="chart-card">
+                <h3>Top 10 Products</h3>
+                <div id="topProducts"></div>
+            </div>
+        </section>
+
+        <!-- ✅ CHART BARU: PROFITABILITY BY TERRITORY -->
+        <section class="chart-grid" style="grid-template-columns: 1fr;">
+            <div class="chart-card">
+                <h3>🗺️ Profitability by Territory</h3>
+                <div id="profitByRegion" style="min-height:350px;"></div>
+            </div>
+        </section>
+
+        <!-- TABLEAU EMBED -->
+        <section class="summary-card">
+            <h2>📊 Tableau Public Dashboard</h2>
+            <div class="tableau-container">
+                <iframe
+                    src="https://public.tableau.com/views/Final_17807610681650/Dashboard1?:showVizHome=no&:embed=true&:toolbar=yes&:animate_transition=yes&:display_static_image=no&:display_spinner=no&:device=desktop"
+                    frameborder="0"
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>AI Zuna Dashboard © 2026</p>
+    </footer>
+
+</div>
+
+<script>
+function openTab(tabId, event) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active-tab');
+    if (event && event.target) event.target.classList.add('active');
+}
+</script>
+
+<script src="js/charts.js"></script>
+<script src="js/insight.js"></script>
+<script src="js/anomaly.js"></script>
+<script src="js/recommendation.js"></script>
+<script src="js/healthscore.js"></script>
+<script src="js/executive.js"></script>
+<script src="js/conclusion.js"></script>
+<script src="js/topperformer.js"></script>
+<!-- ✅ Integrasi Groq AI via Cloudflare Worker (key aman, tidak ada di repo) -->
+<script src="aiAssistant.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
